@@ -68,7 +68,12 @@ class _MyLoginState extends State<MyLogin> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 const SizedBox(height: 50),
-                const Icon(Icons.lock, size: 100),
+                Image.asset(
+                  'assets/images/habit-tracker-logo01.png',
+                  width: 100,
+                  height: 100,
+                  fit: BoxFit.contain,
+                ),
                 const SizedBox(height: 50),
                 Text(
                   'Welcome back you\'ve been missed!',
@@ -140,7 +145,7 @@ class _MyLoginState extends State<MyLogin> {
                     SizedBox(width: 25),
                     SquareTile(imagePath: 'assets/images/fb.png'),
                   ],
-                ),  
+                ),
 
                 const SizedBox(height: 50),
 
@@ -155,7 +160,7 @@ class _MyLoginState extends State<MyLogin> {
                     Text(
                       'Register now',
                       style: TextStyle(
-                        color: Colors.deepPurpleAccent[700],
+                        color: Colors.deepPurple,
                         fontWeight: FontWeight.bold,
                       ),
                     ),

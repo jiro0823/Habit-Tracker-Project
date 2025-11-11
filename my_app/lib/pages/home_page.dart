@@ -1,11 +1,10 @@
-import 'package:curved_navigation_bar/curved_navigation_bar.dart';
+//import 'package:curved_navigation_bar/curved_navigation_bar.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-
-//import 'package:my_app/components/searchbar.dart' as app_comp;
-//import 'package:my_app/components/welcome_banner.dart';
-import 'package:my_app/components/calendar_card.dart';
-// ...existing code...
+//import 'package:my_app/components/searchbar.dart' as components;
+import 'package:my_app/components/buttom_navbar.dart';
+import 'package:intl/intl.dart';
+import 'dart:math';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -17,8 +16,28 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   int _currentIndex = 0;
   DateTime _selectedDate = DateTime.now();
-
   final Map<String, List<Map<String, dynamic>>> _habitData = {};
+
+  // Example daily challenges
+  final List<Map<String, String>> _challenges = [
+    {'title': 'Daily challenge', 'subtitle': 'Do your plan before 09:00 AM'},
+    {
+      'title': 'Mindful moment',
+      'subtitle': 'Take 5 minutes to relax your mind',
+    },
+    {'title': 'Focus boost', 'subtitle': 'Work 25 mins with full focus'},
+    {'title': 'Stretch break', 'subtitle': 'Do light stretches for 3 mins'},
+  ];
+
+  late Map<String, String> _todayChallenge;
+
+  @override
+  void initState() {
+    super.initState();
+    // Pick a random challenge for today
+    final random = Random();
+    _todayChallenge = _challenges[random.nextInt(_challenges.length)];
+  }
 
   Future<void> _signUserOut() async {
     await FirebaseAuth.instance.signOut();
@@ -38,9 +57,8 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
-  void _toggleHabit(int index) {
-    final k = _keyFor(_selectedDate);
-    final list = _habitData[k]!;
+  void _toggleHabitByKey(String dateKey, int index) {
+    final list = _habitData[dateKey]!;
     setState(() => list[index]['done'] = !(list[index]['done'] as bool));
   }
 
@@ -102,37 +120,101 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
-  void _deleteHabit(int index) {
-    final k = _keyFor(_selectedDate);
-    setState(() => _habitData[k]!.removeAt(index));
+  void _deleteHabitByKey(String dateKey, int index) {
+    setState(() => _habitData[dateKey]!.removeAt(index));
+  }
+
+  double _calculateProgress() {
+    if (_habitData.isEmpty) return 0;
+    int totalDays = _habitData.length;
+    int completedDays = _habitData.entries
+        .where((entry) => entry.value.any((habit) => habit['done'] == true))
+        .length;
+    return completedDays / totalDays;
   }
 
   @override
   Widget build(BuildContext context) {
     final user = FirebaseAuth.instance.currentUser;
-    final email = user?.email ?? 'No email available';
-
+    final email = user?.email ?? 'Guest User';
     _ensureDateHasHabits(_selectedDate);
-    final habits = _habitData[_keyFor(_selectedDate)]!;
+
+    List<Map<String, dynamic>> displayHabits;
+    if (_currentIndex == 1) {
+      displayHabits = _habitData.entries.expand((entry) {
+        final dateKey = entry.key;
+        return entry.value.asMap().entries.map((e) {
+          return {
+            'title': e.value['title'],
+            'done': e.value['done'],
+            'dateKey': dateKey,
+            'sourceIndex': e.key,
+          };
+        });
+      }).toList();
+    } else {
+      final k = _keyFor(_selectedDate);
+      final list = _habitData[k] ?? [];
+      displayHabits = list.asMap().entries.map((e) {
+        return {
+          'title': e.value['title'],
+          'done': e.value['done'],
+          'dateKey': k,
+          'sourceIndex': e.key,
+        };
+      }).toList();
+    }
+
+    final startOfWeek = _selectedDate.subtract(
+      Duration(days: _selectedDate.weekday - 1),
+    );
+    final daysOfWeek = List.generate(
+      7,
+      (i) => startOfWeek.add(Duration(days: i)),
+    );
+    final progress = _calculateProgress();
 
     return Scaffold(
       appBar: AppBar(
-        centerTitle: true,
-        leading: IconButton(
-          icon: const Icon(Icons.home_outlined),
-          onPressed: () {},
+        elevation: 0,
+        backgroundColor: Colors.white,
+        titleSpacing: 16,
+        title: Row(
+          children: [
+            CircleAvatar(
+              radius: 20,
+              backgroundImage: const AssetImage('assets/images/eberni.jpg'),
+              backgroundColor: Colors.grey.shade200,
+            ),
+            const SizedBox(width: 12),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  "Hello,",
+                  style: TextStyle(color: Colors.grey, fontSize: 13),
+                ),
+                Text(
+                  email.split('@')[0], // just the username part
+                  style: const TextStyle(
+                    color: Colors.black,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+          ],
         ),
-        title: const Text('Home'),
         actions: [
           IconButton(
             tooltip: 'Sign out',
-            icon: const Icon(Icons.logout),
-            onPressed: () async => await _signUserOut(),
+            icon: const Icon(Icons.logout, color: Colors.deepPurple),
+            onPressed: _signUserOut,
           ),
         ],
       ),
       backgroundColor: Colors.white,
-      // ensure nav bar space
       body: SafeArea(
         child: Padding(
           padding: EdgeInsets.only(
@@ -143,54 +225,191 @@ class _HomePageState extends State<HomePage> {
           ),
           child: Column(
             children: [
-              const SizedBox(height: 12),
-
-              Center(
-                child: Column(
-                  children: [
-                    Text(
-                      'Hi, $email',
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    const Text(
-                      'LOG IN SUCCESSFULLY!',
-                      style: TextStyle(fontSize: 14, color: Colors.green),
-                    ),
-                  ],
-                ),
-              ),
-
-              const SizedBox(height: 12),
-
-              // calendar - fixed height so it stays visible while list scrolls
+              // 🟣 Dynamic Daily Challenge Banner
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 12.0),
-                child: SizedBox(
-                  height: 300,
-                  child: CalendarCard(
-                    selectedDate: _selectedDate,
-                    onDateChanged: (d) => setState(() {
-                      _selectedDate = d;
-                      _ensureDateHasHabits(d);
-                    }),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 12,
+                ),
+                child: Container(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [
+                        Colors.deepPurple.shade400,
+                        Colors.deepPurple.shade200,
+                      ],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    borderRadius: BorderRadius.circular(18),
+                  ),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 18,
+                    vertical: 16,
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              _todayChallenge['title']!,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              _todayChallenge['subtitle']!,
+                              style: const TextStyle(
+                                color: Colors.white70,
+                                fontSize: 14,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      const Icon(
+                        Icons.access_time,
+                        color: Colors.white,
+                        size: 32,
+                      ),
+                    ],
                   ),
                 ),
               ),
 
+              //  Weekly Progress Panel
               Padding(
                 padding: const EdgeInsets.symmetric(
-                  horizontal: 16.0,
-                  vertical: 8.0,
+                  horizontal: 16,
+                  vertical: 8,
+                ),
+                child: Container(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [Colors.deepPurple, Colors.deepPurple.shade200],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 16,
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        "Your Weekly Progress",
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      LinearProgressIndicator(
+                        value: progress,
+                        backgroundColor: Colors.white.withOpacity(0.3),
+                        valueColor: const AlwaysStoppedAnimation<Color>(
+                          Colors.white,
+                        ),
+                        minHeight: 8,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        "${(progress * 100).toStringAsFixed(1)}% completed",
+                        style: const TextStyle(color: Colors.white),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 10),
+
+              //  Weekly Calendar
+              SizedBox(
+                height: 90,
+                child: ListView.builder(
+                  scrollDirection: Axis.horizontal,
+                  itemCount: daysOfWeek.length,
+                  itemBuilder: (context, index) {
+                    final day = daysOfWeek[index];
+                    final isSelected =
+                        day.day == _selectedDate.day &&
+                        day.month == _selectedDate.month &&
+                        day.year == _selectedDate.year;
+
+                    return GestureDetector(
+                      onTap: () {
+                        setState(() {
+                          _selectedDate = day;
+                          _ensureDateHasHabits(day);
+                        });
+                      },
+                      child: Container(
+                        width: 70,
+                        margin: const EdgeInsets.symmetric(horizontal: 6),
+                        decoration: BoxDecoration(
+                          color: isSelected
+                              ? Colors.deepPurple
+                              : Colors.deepPurple.shade100,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text(
+                                DateFormat('EEE').format(day),
+                                style: TextStyle(
+                                  color: isSelected
+                                      ? Colors.white
+                                      : Colors.deepPurple,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                day.day.toString(),
+                                style: TextStyle(
+                                  color: isSelected
+                                      ? Colors.white
+                                      : Colors.deepPurple,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+
+              //  Habit Section
+              Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 8,
                 ),
                 child: Row(
                   children: [
                     Expanded(
                       child: Text(
-                        'Habits — ${_selectedDate.month}/${_selectedDate.day}/${_selectedDate.year}',
+                        _currentIndex == 1
+                            ? 'All Habits'
+                            : 'Habits — ${_selectedDate.month}/${_selectedDate.day}/${_selectedDate.year}',
                         style: const TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
@@ -208,29 +427,32 @@ class _HomePageState extends State<HomePage> {
                 ),
               ),
 
+              //   Habit List
               Expanded(
                 child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 12.0),
-                  child: habits.isEmpty
+                  child: displayHabits.isEmpty
                       ? Center(
                           child: Text(
-                            'No habits for this date. Tap + to add.',
+                            _currentIndex == 1
+                                ? 'No habits. Tap + to add.'
+                                : 'No habits for this date. Tap + to add.',
                             style: TextStyle(color: Colors.grey.shade600),
                           ),
                         )
                       : ListView.separated(
-                          itemCount: habits.length,
+                          itemCount: displayHabits.length,
                           separatorBuilder: (_, __) =>
                               const SizedBox(height: 8),
                           itemBuilder: (context, index) {
-                            final h = habits[index];
+                            final h = displayHabits[index];
                             final done = h['done'] as bool;
-                            final keyStr =
-                                '${_keyFor(_selectedDate)}-$index-${h['title']}';
+                            final dateKey = h['dateKey'] as String;
+                            final sourceIndex = h['sourceIndex'] as int;
+
                             return Dismissible(
-                              key: Key(keyStr),
-                              direction: DismissDirection
-                                  .endToStart, // swipe left to delete
+                              key: Key('$dateKey-$sourceIndex'),
+                              direction: DismissDirection.endToStart,
                               background: Container(
                                 padding: const EdgeInsets.only(right: 20),
                                 alignment: Alignment.centerRight,
@@ -244,7 +466,7 @@ class _HomePageState extends State<HomePage> {
                                 ),
                               ),
                               onDismissed: (_) {
-                                _deleteHabit(index);
+                                _deleteHabitByKey(dateKey, sourceIndex);
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   const SnackBar(
                                     content: Text('Habit deleted'),
@@ -256,18 +478,17 @@ class _HomePageState extends State<HomePage> {
                                   borderRadius: BorderRadius.circular(12),
                                 ),
                                 child: ListTile(
-                                  contentPadding: const EdgeInsets.symmetric(
-                                    horizontal: 12,
-                                    vertical: 4,
-                                  ),
                                   leading: Checkbox(
                                     value: done,
-                                    onChanged: (_) => _toggleHabit(index),
+                                    onChanged: (_) =>
+                                        _toggleHabitByKey(dateKey, sourceIndex),
                                   ),
                                   title: Text(
-                                    h['title'] as String,
+                                    ['title'] as String,
                                     style: TextStyle(
-                                      color: done ? Colors.grey : Colors.black,
+                                      color: done
+                                          ? Colors.grey
+                                          : Colors.black87,
                                       decoration: done
                                           ? TextDecoration.lineThrough
                                           : TextDecoration.none,
@@ -278,9 +499,17 @@ class _HomePageState extends State<HomePage> {
                                       Icons.delete,
                                       color: Colors.red,
                                     ),
-                                    onPressed: () => _deleteHabit(index),
+                                    onPressed: () =>
+                                        _deleteHabitByKey(dateKey, sourceIndex),
                                   ),
-                                  onLongPress: () => _editHabitDialog(index),
+                                  onLongPress: () {
+                                    if (_currentIndex == 1) {
+                                      setState(() {
+                                        _selectedDate = DateTime.parse(dateKey);
+                                      });
+                                    }
+                                    _editHabitDialog(sourceIndex);
+                                  },
                                 ),
                               ),
                             );
@@ -292,36 +521,13 @@ class _HomePageState extends State<HomePage> {
           ),
         ),
       ),
-
-      bottomNavigationBar: CurvedNavigationBar(
-        backgroundColor: Colors.white,
-        color: Colors.deepPurple.shade300,
-        buttonBackgroundColor: Colors.deepPurple,
-        animationDuration: const Duration(milliseconds: 300),
-        index: _currentIndex,
-        items: const [
-          Icon(Icons.home_outlined, size: 30, color: Colors.white),
-          Icon(Icons.list_alt, size: 30, color: Colors.white),
-          Icon(Icons.add, size: 30, color: Colors.white),
-          Icon(Icons.person_outline, size: 30, color: Colors.white),
-          Icon(Icons.settings_outlined, size: 30, color: Colors.white),
-        ],
+      bottomNavigationBar: ButtomNavbar(
+        currentIndex: _currentIndex,
         onTap: (index) async {
           setState(() => _currentIndex = index);
-
-          // If center '+' button (index 2) tapped, open add-habit dialog
-          if (index == 2) {
-            await _addHabitDialog();
-            // optionally keep the selected tab on a different index (e.g. back to home)
-            // setState(() => _currentIndex = 0);
-          } else {
-            // handle other tabs if you want navigation actions per index
-            // example: navigate to different pages or update view
-            // debugPrint('nav index: $index');
-          }
+          if (index == 2) await _addHabitDialog();
         },
       ),
     );
   }
 }
-  

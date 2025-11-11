@@ -34,12 +34,14 @@ dependencies:
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.8
+  smooth_page_indicator: ^1.0.0
   curved_labeled_navigation_bar: ^2.0.6
   flutter_svg: ^2.2.1
   firebase_core: ^4.2.0
   firebase_auth: ^6.1.1
   google_sign_in: ^7.2.0
   curved_navigation_bar: ^1.0.6
+  intl: ^0.20.2
 
 dev_dependencies:
   flutter_test:
@@ -51,7 +53,6 @@ dev_dependencies:
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
   flutter_lints: ^5.0.0
-  
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
@@ -63,7 +64,10 @@ flutter:
   assets:
     - assets/images/google.png
     - assets/images/fb.png
-  
+    - assets/images/eberni.jpg
+    - assets/images/intropic.png
+    - assets/images/intopic01.png
+    - assets/images/habit-tracker-logo01.png
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images

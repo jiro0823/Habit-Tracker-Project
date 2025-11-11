@@ -1,11 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:my_app/pages/authpage.dart';
-//import 'package:my_app/pages/home.dart';
-//import 'package:my_app/homepage.dart';
-
+import 'package:my_app/onboarding_screen.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
-
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -18,12 +15,15 @@ void main() async {
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
-  // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
-    return const MaterialApp(
+    return MaterialApp(
       debugShowCheckedModeBanner: false,
-      home: Authpage(),
+      initialRoute: '/onboarding',  // Set initial route
+      routes: {
+        '/onboarding': (context) => const OnboardingScreen(),
+        '/auth': (context) => const Authpage(),
+      },
     );
   }
 }
