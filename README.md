@@ -75,6 +75,16 @@ icacls "D:\xampp\htdocs\Flutter" /setowner "%USERNAME%" /T /C
 - The '+' nav button opens the Add Habit dialog. Use long-press on list items to edit.
 - To persist data across runs, integrate Hive or SharedPreferences (not included by default).
 
+**#To Log In use this users**
+Email: Test@gmail.com
+Password: 12345678
+
+or
+
+Email: Kevalcaide3@gmail.com
+Password: @kosiKevin23
+
+
 ## Build release
 Android:
 ```powershell
